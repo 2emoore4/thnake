@@ -1,0 +1,159 @@
+<head>
+<script>
+  dt = 16;
+
+  isDef = function(o) { return typeof o !== 'undefined'; };
+
+  lerp = function(a, b, percent) {
+    return a + percent * (b - a);
+  };
+
+  function V2(x, y) {
+    this.x = isDef(x) ? x : 0;
+    this.y = isDef(y) ? y : 0;
+  }
+
+  function Point(x, y) {
+    this.pos = new V2(x, y);
+    this.v = new V2();
+
+    this.constrainToWindow = function () {
+      if (this.pos.x < 0) {
+        this.pos.x = 0;
+      }
+
+      if (this.pos.x > c.width) {
+        this.pos.x = c.width;
+      }
+
+      if (this.pos.y < 0) {
+        this.pos.y = 0;
+      }
+
+      if (this.pos.y > c.height) {
+        this.pos.y = c.height;
+      }
+    };
+  }
+
+  function Player() {
+    this.elasticity = 60;
+    this.lastTime = 0;
+    this.leftoverTime = 0;
+    this.pos = new V2();
+    this.tail = new Array();
+
+    for (var i = 1; i < 60; i++) {
+      this.tail.push(new Point(this.pos.x - i * 6, this.pos.y - i * 6));
+    }
+
+    this.updateJoint = function(i) {
+      var lastJoint = i == 0 ? this : this.tail[i - 1];
+      var joint = this.tail[i];
+
+      var dx = lastJoint.pos.x - joint.pos.x;
+      var dy = lastJoint.pos.y - joint.pos.y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+
+      // this should go to zero as d goes to resting distance
+      joint.v.x = d > 6 ? dx / this.elasticity : 0;
+      joint.v.y = d > 6 ? dy / this.elasticity : 0;
+
+      joint.pos.x += joint.v.x * dt;
+      joint.pos.y += joint.v.y * dt;
+
+      joint.constrainToWindow();
+    }
+
+    this.updateTail = function() {
+      for (var i = 0; i < this.tail.length; i++) {
+        this.updateJoint(i);
+      }
+    }
+
+    this.update = function(t) {
+      var elapsedTime = t - this.lastTime;
+      elapsedTime += this.leftoverTime;
+      var timesteps = Math.floor(elapsedTime / dt);
+      this.leftoverTime = elapsedTime - timesteps * dt;
+
+      for(var i = 0; i < timesteps; i++) {
+        this.updateTail();
+      }
+
+      this.lastTime = t;
+    };
+
+    this.render = function() {
+      // draw tail
+      ctx.strokeStyle = white;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(this.pos.x, this.pos.y);
+      for (var i = 0; i < this.tail.length; i++) {
+        ctx.lineTo(this.tail[i].pos.x, this.tail[i].pos.y);
+        ctx.stroke();
+        ctx.lineWidth = 0.5 - 0.5 * i / this.tail.length;
+      }
+
+      // draw head
+      drawCircle(player.pos.x, player.pos.y, 7, "#88BBDD");
+      drawCircle(player.pos.x, player.pos.y, 5);
+    }
+  }
+
+  // colors
+  var white = "#ffffff";
+  var black = "#000000";
+  var grey1 = "#111111";
+  var grey2 = "#222222";
+
+  function init() {
+    c = document.getElementById("c");
+    ctx = c.getContext("2d");
+    updateWindowSizes();
+
+    player = new Player();
+    c.addEventListener("mousemove", function(e) {
+      player.pos.x = e.clientX;
+      player.pos.y = e.clientY;
+    });
+
+    window.requestAnimationFrame(render);
+  }
+
+  lastTime = 0;
+  function render(t) {
+    dt = t - lastTime;
+    updateWindowSizes();
+    drawBackground();
+
+    player.update(t);
+    player.render();
+
+    lastTime = t;
+    window.requestAnimationFrame(render);
+  }
+
+  function drawBackground() {
+    ctx.fillStyle = grey2;
+    ctx.fillRect(0, 0, c.width, c.height);
+  }
+
+  function drawCircle(x, y, r, color) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI, false);
+    ctx.fillStyle = isDef(color) ? color : white;
+    ctx.fill();
+  }
+
+  function updateWindowSizes() {
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+  }
+</script>
+</head>
+
+<body onload="init()" style="margin: 0px; cursor: none;">
+  <canvas id=c></canvas>
+</body>
