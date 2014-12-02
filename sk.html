@@ -65,23 +65,10 @@
       joint.constrainToWindow();
     }
 
-    this.updateTail = function() {
+    this.update = function(t) {
       for (var i = 0; i < this.tail.length; i++) {
         this.updateJoint(i);
       }
-    }
-
-    this.update = function(t) {
-      var elapsedTime = t - this.lastTime;
-      elapsedTime += this.leftoverTime;
-      var timesteps = Math.floor(elapsedTime / dt);
-      this.leftoverTime = elapsedTime - timesteps * dt;
-
-      for(var i = 0; i < timesteps; i++) {
-        this.updateTail();
-      }
-
-      this.lastTime = t;
     };
 
     this.render = function() {
